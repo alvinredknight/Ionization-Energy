@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chemistry Interactive Mastery</title>
+    <style>
+        :root {
+            --primary: #FF3366;
+            --secondary: #4ECDC4;
+            --tertiary: #FFE66D;
+            --dark: #292F36;
+            --light: #F7FFF7;
+            --accent: #A566FF;
+        }
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--dark), #14181d);
+            color: var(--light);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            text-align: center;
+        }
+        h1 { 
+            color: var(--tertiary); 
+            font-size: 2.2rem; 
+            text-shadow: 2px 2px 6px rgba(0,0,0,0.6); 
+            margin-top: 0;
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 25px;
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            max-width: 650px;
+            width: 100%;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+        .btn {
+            background-color: var(--secondary);
+            color: var(--dark);
+            border: none;
+            padding: 12px 20px;
+            margin: 8px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s, background-color 0.2s;
+            box-shadow: 0 4px 15px rgba(78, 205, 196, 0.3);
+            display: inline-block;
+        }
+        .btn:hover:not(:disabled), .btn:active:not(:disabled) {
+            transform: translateY(-2px) scale(1.02);
+            background-color: var(--tertiary);
+            box-shadow: 0 6px 20px rgba(255, 230, 109, 0.5);
+        }
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .opt-btn {
+            width: 100%;
+            text-align: left;
+            padding: 12px 20px;
+            border-radius: 12px;
+            margin: 6px 0;
+        }
+        .data-table {
+            width: 100%;
+            margin: 15px 0;
+            border-collapse: collapse;
+            overflow-x: auto;
+            display: block;
+        }
+        .data-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .data-table th, .data-table td {
+            border: 1px solid var(--secondary);
+            padding: 8px 12px;
+            text-align: center;
+            font-size: 0.95rem;
+        }
+        .data-table th { background-color: rgba(78, 205, 196, 0.2); }
+        #feedback { 
+            font-size: 1.3rem; 
+            font-weight: bold; 
+            margin-top: 15px; 
+            min-height: 40px; 
+            padding: 5px;
+            border-radius: 8px;
+        }
+        .score-board { 
+            font-size: 1.2rem; 
+            color: var(--tertiary); 
+            margin-bottom: 15px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .mic-status { 
+            font-size: 0.85rem; 
+            color: #aaa; 
+            margin-top: 10px; 
+            font-style: italic;
+        }
+        #mic-btn { 
+            background-color: var(--primary); 
+            color: white; 
+            box-shadow: 0 4px 15px rgba(255, 51, 102, 0.4);
+        }
+        .nav-btn {
+            background-color: var(--accent);
+            color: white;
+            box-shadow: 0 4px 15px rgba(165, 102, 255, 0.4);
+        }
+        .badge {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Atomic Mastery Explorer</h1>
+    <div class="card" id="app-container">
+        <!-- Content injected via JS -->
+    </div>
+
+<script>
+    // --- Audio System (Web Audio API) ---
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    
+    function playSound(type) {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        osc.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        
+        if (type === 'correct') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
+            osc.frequency.exponentialRampToValueAtTime(1046.50, audioCtx.currentTime + 0.15); // C6
+            gainNode.gain.setValueAtTime(0.4, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.35);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.35);
+        } else {
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(180, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(90, audioCtx.currentTime + 0.25);
+            gainNode.gain.setValueAtTime(0.4, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.35);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.35);
+        }
+    }
+
+    // --- State Management ---
+    let score = 0;
+    let currentQuestionIndex = 0;
+    let currentQuestions = [];
+
+    // --- Comprehensive Quiz Data (5 Questions per Part) ---
+
+    // A. Ionization Energy - Part 1: Identify Element (5 Questions)
+    const iePart1 = [
+        {
+            part: "Part 1: Element Identification",
+            text: "Identify the unknown Period 2 element based on its successive ionization energies (kJ/mol). Notice the huge jump between IE1 and IE2:",
+            data: ["IE1: 520", "IE2: 7298", "IE3: 11815", "IE4: 15600"],
+            options: ["Lithium (Li)", "Beryllium (Be)", "Boron (B)", "Carbon (C)"],
+            answer: 0
+        },
+        {
+            part: "Part 1: Element Identification",
+            text: "Identify the unknown Period 3 element using these successive ionization energies (kJ/mol). Note where the massive jump occurs:",
+            data: ["IE1: 496", "IE2: 4562", "IE3: 6912", "IE4: 9543"],
+            options: ["Magnesium (Mg)", "Sodium (Na)", "Aluminum (Al)", "Silicon (Si)"],
+            answer: 1
+        },
+        {
+            part: "Part 1: Element Identification",
+            text: "An unknown Period 2 element exhibits the following successive ionization energies (kJ/mol). Which element is it?",
+            data: ["IE1: 899", "IE2: 1757", "IE3: 14848", "IE4: 21006"],
+            options: ["Lithium (Li)", "Boron (B)", "Beryllium (Be)", "Nitrogen (N)"],
+            answer: 2
+        },
+        {
+            part: "Part 1: Element Identification",
+            text: "Examine the ionization energy data (kJ/mol) for an unknown Period 3 element. Identify the element:",
+            data: ["IE1: 578", "IE2: 1817", "IE3: 2745", "IE4: 11577"],
+            options: ["Sodium (Na)", "Magnesium (Mg)", "Silicon (Si)", "Aluminum (Al)"],
+            answer: 3
+        },
+        {
+            part: "Part 1: Element Identification",
+            text: "Identify the unknown Period 2 element based on the dramatic energy surge shown in its successive ionization data (kJ/mol):",
+            data: ["IE1: 1086", "IE2: 2353", "IE3: 4620", "IE4: 6223", "IE5: 37831"],
+            options: ["Boron (B)", "Carbon (C)", "Nitrogen (N)", "Oxygen (O)"],
+            answer: 1
+        }
+    ];
+
+    // A. Ionization Energy - Part 2: Valence Electrons (5 Questions)
+    const iePart2 = [
+        {
+            part: "Part 2: Valence Electrons",
+            text: "Based on the successive ionization energies (kJ/mol) below, how many valence electrons does this element have?",
+            data: ["IE1: 738", "IE2: 1451", "IE3: 7733", "IE4: 10543"],
+            options: ["1 Valence Electron", "2 Valence Electrons", "3 Valence Electrons", "4 Valence Electrons"],
+            answer: 1
+        },
+        {
+            part: "Part 2: Valence Electrons",
+            text: "Determine the number of valence electrons for this atom by locating the spike in required ionization energy (kJ/mol):",
+            data: ["IE1: 1000", "IE2: 2252", "IE3: 3357", "IE4: 4556", "IE5: 7004", "IE6: 8496", "IE7: 27107"],
+            options: ["4 Valence Electrons", "5 Valence Electrons", "6 Valence Electrons", "7 Valence Electrons"],
+            answer: 2
+        },
+        {
+            part: "Part 2: Valence Electrons",
+            text: "Examine the values (kJ/mol) and identify the valence electron count:",
+            data: ["IE1: 419", "IE2: 3052", "IE3: 4420", "IE4: 5877"],
+            options: ["1 Valence Electron", "2 Valence Electrons", "3 Valence Electrons", "4 Valence Electrons"],
+            answer: 0
+        },
+        {
+            part: "Part 2: Valence Electrons",
+            text: "How many valence electrons does an atom with the following ionization energy profile (kJ/mol) possess?",
+            data: ["IE1: 786", "IE2: 1577", "IE3: 3232", "IE4: 4356", "IE5: 16091"],
+            options: ["2 Valence Electrons", "3 Valence Electrons", "4 Valence Electrons", "5 Valence Electrons"],
+            answer: 2
+        },
+        {
+            part: "Part 2: Valence Electrons",
+            text: "Locate the main-shell transition to determine the number of valence electrons for this element (values in kJ/mol):",
+            data: ["IE1: 1402", "IE2: 2856", "IE3: 4578", "IE4: 7475", "IE5: 9445", "IE6: 53267"],
+            options: ["3 Valence Electrons", "4 Valence Electrons", "5 Valence Electrons", "6 Valence Electrons"],
+            answer: 2
+        }
+    ];
+
+    // B. Electronegativity & Bond Classification (5 Questions)
+    const enQuestions = [
+        {
+            part: "Part 1: Bond Classification",
+            text: "Hydrogen (EN = 2.1) and Chlorine (EN = 3.16). Calculate ΔEN and classify the bond type:",
+            data: ["ΔEN < 0.4: Non-polar Covalent", "ΔEN 0.4 - 1.7: Polar Covalent", "ΔEN > 1.7: Ionic"],
+            options: ["ΔEN = 1.06 → Non-polar Covalent", "ΔEN = 1.06 → Polar Covalent", "ΔEN = 1.06 → Ionic", "ΔEN = 5.26 → Ionic"],
+            answer: 1
+        },
+        {
+            part: "Part 1: Bond Classification",
+            text: "Sodium (EN = 0.93) and Fluorine (EN = 3.98). Calculate ΔEN and classify the bond type:",
+            data: ["ΔEN < 0.4: Non-polar Covalent", "ΔEN 0.4 - 1.7: Polar Covalent", "ΔEN > 1.7: Ionic"],
+            options: ["ΔEN = 3.05 → Non-polar Covalent", "ΔEN = 3.05 → Polar Covalent", "ΔEN = 3.05 → Ionic", "ΔEN = 4.91 → Polar Covalent"],
+            answer: 2
+        },
+        {
+            part: "Part 1: Bond Classification",
+            text: "Carbon (EN = 2.55) and Hydrogen (EN = 2.20). Calculate ΔEN and classify the bond type:",
+            data: ["ΔEN < 0.4: Non-polar Covalent", "ΔEN 0.4 - 1.7: Polar Covalent", "ΔEN > 1.7: Ionic"],
+            options: ["ΔEN = 0.35 → Non-polar Covalent", "ΔEN = 0.35 → Polar Covalent", "ΔEN = 0.35 → Ionic", "ΔEN = 4.75 → Non-polar Covalent"],
+            answer: 0
+        },
+        {
+            part: "Part 1: Bond Classification",
+            text: "Oxygen (EN = 3.44) and Oxygen (EN = 3.44) forming an O₂ molecule. Calculate ΔEN and classify:",
+            data: ["ΔEN < 0.4: Non-polar Covalent", "ΔEN 0.4 - 1.7: Polar Covalent", "ΔEN > 1.7: Ionic"],
+            options: ["ΔEN = 0.00 → Non-polar Covalent", "ΔEN = 0.00 → Polar Covalent", "ΔEN = 6.88 → Ionic", "ΔEN = 1.00 → Non-polar Covalent"],
+            answer: 0
+        },
+        {
+            part: "Part 1: Bond Classification",
+            text: "Calcium (EN = 1.00) and Oxygen (EN = 3.44). Calculate ΔEN and classify the bond type:",
+            data: ["ΔEN < 0.4: Non-polar Covalent", "ΔEN 0.4 - 1.7: Polar Covalent", "ΔEN > 1.7: Ionic"],
+            options: ["ΔEN = 2.44 → Polar Covalent", "ΔEN = 2.44 → Non-polar Covalent", "ΔEN = 2.44 → Ionic", "ΔEN = 4.44 → Ionic"],
+            answer: 2
+        }
+    ];
+
+    // --- UI Rendering & Flow ---
+    const container = document.getElementById('app-container');
+
+    function renderMenu() {
+        container.innerHTML = `
+            <h2>Select an Exercise Module</h2>
+            <button class="btn nav-btn" onclick="startModule('ie1')" tabindex="1">A. Ionization Energy (Part 1: Element ID)</button><br>
+            <button class="btn nav-btn" onclick="startModule('ie2')" tabindex="2">A. Ionization Energy (Part 2: Valence e⁻)</button><br>
+            <button class="btn nav-btn" onclick="startModule('en')" tabindex="3">B. Electronegativity & Bond Types</button>
+        `;
+    }
+
+    function startModule(module) {
+        if (module === 'ie1') currentQuestions = iePart1;
+        else if (module === 'ie2') currentQuestions = iePart2;
+        else if (module === 'en') currentQuestions = enQuestions;
+
+        currentQuestionIndex = 0;
+        score = 0;
+        renderQuestion();
+    }
+
+    function renderQuestion() {
+        if (currentQuestionIndex >= currentQuestions.length) {
+            const percentage = Math.round((score / currentQuestions.length) * 100);
+            container.innerHTML = `
+                <h2>Exercise Complete! 🎉</h2>
+                <div style="font-size: 1.5rem; margin: 20px 0; color: var(--tertiary);">
+                    Score: ${score} / ${currentQuestions.length} (${percentage}%)
+                </div>
+                <button class="btn nav-btn" onclick="renderMenu()">Return to Main Menu</button>
+            `;
+            return;
+        }
+
+        const q = currentQuestions[currentQuestionIndex];
+        let dataHTML = '<div class="data-table"><table><tr>';
+        q.data.forEach(d => dataHTML += `<td><strong>${d}</strong></td>`);
+        dataHTML += '</tr></table></div>';
+
+        let optionsHTML = '';
+        q.options.forEach((opt, idx) => {
+            optionsHTML += `<button class="btn opt-btn" onclick="checkAnswer(${idx})" tabindex="${idx+1}">${idx + 1}. ${opt}</button><br>`;
+        });
+
+        container.innerHTML = `
+            <div class="score-board">
+                <span class="badge">Question ${currentQuestionIndex + 1} of ${currentQuestions.length}</span>
+                <span>Score: ${score}</span>
+            </div>
+            <h3 style="color: var(--secondary); margin-bottom: 5px;">${q.part}</h3>
+            <p style="font-size: 1.05rem; line-height: 1.4;">${q.text}</p>
+            ${dataHTML}
+            <div id="options-container">
+                ${optionsHTML}
+            </div>
+            <button id="mic-btn" class="btn" onclick="startDictation()">🎤 Answer by Voice</button>
+            <div class="mic-status" id="mic-status">Inputs: Touch/Mouse, Keyboard (1-4), or Voice.</div>
+            <div id="feedback"></div>
+        `;
+    }
+
+    function checkAnswer(selectedIndex) {
+        const q = currentQuestions[currentQuestionIndex];
+        const feedback = document.getElementById('feedback');
+        const btns = document.querySelectorAll('#options-container .btn');
+        btns.forEach(b => b.disabled = true);
+        
+        if (selectedIndex === q.answer) {
+            playSound('correct');
+            feedback.style.color = 'var(--secondary)';
+            feedback.style.backgroundColor = 'rgba(78, 205, 196, 0.15)';
+            feedback.innerText = "✓ Correct! Excellent analysis.";
+            score++;
+        } else {
+            playSound('wrong');
+            feedback.style.color = 'var(--primary)';
+            feedback.style.backgroundColor = 'rgba(255, 51, 102, 0.15)';
+            feedback.innerText = `✗ Incorrect. Correct answer: ${q.options[q.answer]}`;
+        }
+
+        setTimeout(() => {
+            currentQuestionIndex++;
+            renderQuestion();
+        }, 2200);
+    }
+
+    // --- Input Handling ---
+    
+    // 1. Keyboard Input (Keys 1-4)
+    document.addEventListener('keydown', (e) => {
+        const key = parseInt(e.key);
+        if (key >= 1 && key <= 4 && document.getElementById('options-container')) {
+            const btns = document.querySelectorAll('#options-container .btn');
+            if (btns[key-1] && !btns[key-1].disabled) {
+                checkAnswer(key - 1);
+            }
+        }
+    });
+
+    // 2. Microphone Input (Web Speech API)
+    function startDictation() {
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            const recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.lang = "en-US";
+            
+            const statusEl = document.getElementById('mic-status');
+            const micBtn = document.getElementById('mic-btn');
+            
+            statusEl.innerText = "Listening... Say 'One', 'Two', 'Three', or 'Four'.";
+            micBtn.style.backgroundColor = "white";
+            micBtn.style.color = "var(--primary)";
+            
+            recognition.start();
+
+            recognition.onresult = function(e) {
+                const transcript = e.results[0][0].transcript.toLowerCase().trim();
+                statusEl.innerText = `Heard: "${transcript}"`;
+                
+                let selectedIdx = -1;
+                if (transcript.includes('1') || transcript.includes('one')) selectedIdx = 0;
+                else if (transcript.includes('2') || transcript.includes('two')) selectedIdx = 1;
+                else if (transcript.includes('3') || transcript.includes('three')) selectedIdx = 2;
+                else if (transcript.includes('4') || transcript.includes('four')) selectedIdx = 3;
+
+                if (selectedIdx !== -1) {
+                    checkAnswer(selectedIdx);
+                } else {
+                    statusEl.innerText = "Could not map voice input to 1-4. Try again or tap/type.";
+                }
+                micBtn.style.backgroundColor = "var(--primary)";
+                micBtn.style.color = "white";
+            };
+
+            recognition.onerror = function() {
+                statusEl.innerText = "Microphone error/permission denied. Use keyboard or touch.";
+                micBtn.style.backgroundColor = "var(--primary)";
+                micBtn.style.color = "white";
+            };
+        } else {
+            document.getElementById('mic-status').innerText = "Speech Recognition API not supported in this browser.";
+        }
+    }
+
+    // Initialize Application
+    renderMenu();
+</script>
+</body>
+</html>
